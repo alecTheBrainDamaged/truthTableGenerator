@@ -4,6 +4,7 @@ import Element as E exposing (..)
 import Element.Border as B exposing (..)
 import Element.Input as EI exposing (..)
 import Element.Events exposing (onClick)
+import Element.Background as Background exposing (..)
 import Html exposing (..)
 import Http 
 import Element.Font as Font exposing (..)
@@ -13,11 +14,12 @@ import Browser
 
 main = Browser.element
      { init = init
-     , view = \model -> layout [] (view model)
+     , view = \model -> E.layout [] (E.el [E.width fill, E.height fill, Background.color millennialPink] (view model))
      , update = update
      , subscriptions = subscriptions
      }
-
+millennialPink : Color
+millennialPink = rgb255 243 207 198
 type alias Model =
    { status : Status
    , argument : String
@@ -42,8 +44,8 @@ type Msg = SendArgHttpPost
          | GotJson (Result Http.Error HaskellServerResponse)
          | UpdateArgument String
 ------- THIS IS part of our VIEW MODULE, What in the FUCK we are RENDERING ON SCREEN. 
-welcomeString : String
-welcomeString = "Welcome to the truth table generator, by the Boolean Baboon"
+title : String
+title = "Truth Table Generator"
 
 
 inputArgumentBox : Element Msg
@@ -70,12 +72,14 @@ colorRed = rgb255 255 0 0
 colorGreen : Color
 colorGreen = rgb255 0 255 0
 
+
 view : Model -> Element Msg
 view model =
-   column [spacing 20, padding 20]
-   [ case model.status of
+  column [spacing 20, E.centerX, E.centerY]
+  [
+   case model.status of
     Default -> column [spacing 10] 
-               [E.text welcomeString
+               [E.text title
                ,E.text "Your natural language argument: "
                , E.text model.argument
                , defaultMsg
@@ -85,7 +89,7 @@ view model =
                      [
                      case (Tuple.second tuple) of
                         Nothing -> column [spacing 10] 
-                                   [ E.text welcomeString
+                                   [ E.text title
                                    , E.text "Your natural language argument: "
                                    , E.text model.argument
                                    , defaultMsg
@@ -94,7 +98,7 @@ view model =
                                    , E.text (Maybe.withDefault "" (Tuple.first tuple))
                                    ]
                         (Just i) -> column [spacing 10]
-                                     [ E.text welcomeString
+                                     [ E.text title
                                      , E.text "Your natural language argument: "
                                      , E.text model.argument                                     
                                      , defaultMsg
@@ -105,7 +109,7 @@ view model =
                      ]
     Success h -> case String.isEmpty h.err of
                   True -> column [spacing 15]
-                          [ E.text welcomeString
+                          [ E.text title
                           , E.text "Your natural language argument: "
                           , E.text model.argument
                           , defaultMsg
@@ -115,7 +119,7 @@ view model =
                           ]
 
                   _    -> column [spacing 15]
-                          [ E.text welcomeString
+                          [ E.text title
                           , E.text "Your natural language argument: "
                           , E.text model.argument
                           , defaultMsg
@@ -130,6 +134,7 @@ showValidity s =
    "Invalid" -> E.el
                   [Font.color colorRed
                   ,Font.size 18
+                  , Font.center
                   , Font.family
                     [Font.typeface "Open Sans"
                     ,Font.sansSerif
@@ -139,21 +144,21 @@ showValidity s =
    _         -> E.el
                   [Font.color colorGreen
                   ,Font.size 18
+                  , Font.center
                   , Font.family
                     [Font.typeface "Open Sans"
                     ,Font.sansSerif
                     ]
                   ]
                    (E.text s)
-type ConclusionStatus = NoConclusion
-                      | YesConclusion
+
 
 ---------------------
 
 
 {-
                  column [spacing 15]
-               [ welcomeString
+               [ title
                , defaultMsg
                , E.text <| "headers: " ++ h.headers
                , E.text <| "assignments: " ++ h.assignments
@@ -262,6 +267,7 @@ type alias Argument =
 ------
 ----- CREATING TRUTH TABLE FROM RESPONSE FROM BACK END -------------
 
+
 black : Color
 black = rgb255 0 0 0 
 
@@ -298,6 +304,16 @@ createArguments h isArgument =
                    {h | assignments = Maybe.withDefault [] (List.tail h.assignments) , premiseEval = Maybe.withDefault [] (List.tail h.premiseEval), conclusionEval = Maybe.withDefault [] (List.tail h.conclusionEval)}
             in arg :: (createArguments newResponse isArgument)
 
+stylePropositions : String -> Element Msg
+stylePropositions s = E.el
+                  [Font.color black
+                  , Font.italic
+                  , Font.family
+                    [Font.typeface "Open Sans"
+                    ,Font.sansSerif
+                    ]
+                  ]
+                   (E.text s)
 createColumns : String -> List String -> List (Column Argument Msg)
 createColumns vars headerS =   
   let tailify : String -> String
@@ -306,16 +322,16 @@ createColumns vars headerS =
       tailifyList l = Maybe.withDefault [] (List.tail l) 
   in case headerS of
       [] -> []
-      [h] -> List.singleton { header = column [B.width 1, B.solid, B.color black] [E.text h]
+      [h] -> List.singleton { header = column [B.width 1, B.solid, B.color black] [E.el [E.centerX, E.centerY] (stylePropositions h)]
                             , width = fill
                             , view = \arg -> column [B.width 1, B.solid, B.color black] [viewMaybeConc h arg]
                             }
       (headerr :: headerss) -> case List.isEmpty (String.toList vars) of
-                                True -> {header = column [B.width 1, B.solid, B.color black] [(E.text headerr)]
+                                True -> {header = column [B.width 1, B.solid, B.color black] [E.el [E.centerX, E.centerY] (stylePropositions headerr)]
                                         , width = fill
                                         , view  = \arg -> column [B.width 1, B.solid, B.color black] [viewProp headerr arg]
                                         } :: (createColumns (tailify vars) (tailifyList headerS) )
-                                False -> {header = column [B.width 1, B.solid, B.color black] [(E.text headerr)]
+                                False -> {header = column [B.width 1, B.solid, B.color black] [E.el [E.centerX, E.centerY] (E.text headerr)]
                                          , width = fill
                                          , view  = \arg -> column [B.width 1, B.solid, B.color black] [viewVar headerr arg]
                                          } :: (createColumns (tailify vars) (tailifyList headerS))
@@ -350,20 +366,20 @@ index i l =
 fromBool : Bool -> String
 fromBool b = 
    case b of
-    True -> "True"
-    False -> "False"
+    True -> "T"
+    False -> "F"
 
 viewVar : String -> Argument -> Element Msg
 viewVar var arg = 
    let indexOfVar  = Maybe.withDefault (-1) (getIndex (toChar var) (Tuple.first arg.assignment))
        boolean     = Maybe.withDefault True (index indexOfVar (Tuple.second arg.assignment))
-   in  (E.text (fromBool boolean))
+   in  E.el [E.centerX, E.centerY] (E.text (fromBool boolean))
 
 viewMaybeConc : String -> Argument -> Element Msg
 viewMaybeConc maybeConc arg = 
      case arg.conclusion of
       Nothing -> viewProp maybeConc arg
-      (Just t) -> E.text <| fromBool <| Tuple.second t
+      (Just t) -> E.el [E.centerX, E.centerY] (E.text <| fromBool <| Tuple.second t)
 
 viewProp : String -> Argument -> Element Msg
 viewProp prop arg = 
@@ -379,7 +395,7 @@ viewProp prop arg =
          myPropBoolean : Bool
          myPropBoolean = Tuple.second myPropDouble
      in 
-      (E.text (fromBool myPropBoolean))
+      E.el [E.centerX, E.centerY](E.text (fromBool myPropBoolean))
 --- ENDING OF CREATING TRUTH TABLE
 -----------------------------------------                            
 --- JSON DECODER FOR HASKELL BACKEND
@@ -408,3 +424,4 @@ haskellResponseDecoder =
 -- SUBSCRIPTIONS
 subscriptions : Model -> Sub Msg
 subscriptions model = Sub.none
+--
