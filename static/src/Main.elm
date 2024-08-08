@@ -1,6 +1,7 @@
 module Main exposing (..)
 
 import Element as E exposing (..)
+import Element.Border as B exposing (..)
 import Element.Input as EI exposing (..)
 import Element.Events exposing (onClick)
 import Html exposing (..)
@@ -112,16 +113,15 @@ view model =
                           , E.text "Argument's validity"
                           , showValidity h.validityy
                           ]
+
                   _    -> column [spacing 15]
                           [ E.text welcomeString
-                          , E.text "There was a parsing error"
-                          , E.text "Sorry :("
-                          , E.text "Parsing error ["
-                          , E.text h.err
-                          , E.text "]"
                           , E.text "Your natural language argument: "
                           , E.text model.argument
                           , defaultMsg
+                          , E.text "There was a parsing error"
+                          , E.text "Sorry :("
+                          , E.text h.err
                           ]
    ]
 showValidity : String -> Element Msg
@@ -145,6 +145,9 @@ showValidity s =
                     ]
                   ]
                    (E.text s)
+type ConclusionStatus = NoConclusion
+                      | YesConclusion
+
 ---------------------
 
 
@@ -253,52 +256,69 @@ update msg model =
 type alias Argument =
       { assignment : (String, List Bool)
       , propositions : List (String, Bool)
-      , conclusion  : (String, Bool)
+      , conclusion  : Maybe (String, Bool)
       }
+
 ------
 ----- CREATING TRUTH TABLE FROM RESPONSE FROM BACK END -------------
+
+black : Color
+black = rgb255 0 0 0 
 
 createTruthTable : HaskellServerResponse -> Element Msg
 createTruthTable h =
     let vars = Tuple.first (Maybe.withDefault ("",[]) (List.head (h.assignments)))
-    in 
-    E.table [] 
-      { data = createArguments h
-      , columns = createColumns vars h
-      }
+        isArg : Bool
+        isArg = case h.validityy of 
+                 "Nothing" -> False
+                 _         -> True 
+        args = createArguments h isArg                 
+  
+    in E.table [B.width 1, B.solid, (B.color black)]
+       { data = args
+       , columns = createColumns vars h.headers 
+       }
 
-createArguments : HaskellServerResponse -> List Argument
-createArguments h = 
+-- foldr : (a -> b -> b) -> b -> List a -> b
+
+createArguments : HaskellServerResponse -> Bool -> List Argument
+createArguments h isArgument = 
       case h.assignments of
        [] -> []
-       _ ->
-         let firstAssignment = Maybe.withDefault ("",[] ) (List.head h.assignments)
-             headProp   = Maybe.withDefault [] (List.head h.premiseEval)
-             conclusioN     = Maybe.withDefault ("",False) (List.head h.conclusionEval)
-             arg = { assignment   = firstAssignment
-                   , propositions = headProp
-                   , conclusion   = conclusioN
-                   }
-             newResponse = 
-              {h | assignments = Maybe.withDefault [] (List.tail h.assignments) , premiseEval = Maybe.withDefault [] (List.tail h.premiseEval), conclusionEval = Maybe.withDefault [] (List.tail h.conclusionEval)}
-         in arg :: (createArguments newResponse)
-createColumns : String -> HaskellServerResponse -> List (Column Argument Msg)
-createColumns vars h =   
-  case h.headers of
-     [] -> []
-     [x] -> List.singleton {header = E.text x
-                           , width = E.px 100
-                           , view = viewConc 
-                           }
-     (headerr :: headerss) -> case List.isEmpty (String.toList vars) of
-                               True -> {header = E.text headerr
-                                       , width = E.px 100
-                                       , view  = viewProp headerr
-                                       } :: (createColumns (String.fromList (Maybe.withDefault [] (List.tail (String.toList vars)))) {h | headers = headerss})
-                               False -> {header = E.text headerr
-                                        , width = E.px 100
-                                        , view  = viewVar headerr
-                                        } :: (createColumns (String.fromList (Maybe.withDefault [] (List.tail (String.toList vars)))) {h | headers = headerss})
+       _ -> let firstAssignment = Maybe.withDefault ("",[] ) (List.head h.assignments)
+                headProp        = Maybe.withDefault [] (List.head h.premiseEval)
+                conclusioN      =   case isArgument of
+                                     True -> Just (Maybe.withDefault ("",False) (List.head h.conclusionEval))
+                                     False -> Nothing
+                arg = { assignment   = firstAssignment
+                      , propositions = headProp
+                      , conclusion   = conclusioN
+                      }
+                newResponse = 
+                   {h | assignments = Maybe.withDefault [] (List.tail h.assignments) , premiseEval = Maybe.withDefault [] (List.tail h.premiseEval), conclusionEval = Maybe.withDefault [] (List.tail h.conclusionEval)}
+            in arg :: (createArguments newResponse isArgument)
+
+createColumns : String -> List String -> List (Column Argument Msg)
+createColumns vars headerS =   
+  let tailify : String -> String
+      tailify s =  String.fromList (Maybe.withDefault [] (List.tail (String.toList s)))
+      tailifyList : List a -> List a
+      tailifyList l = Maybe.withDefault [] (List.tail l) 
+  in case headerS of
+      [] -> []
+      [h] -> List.singleton { header = column [B.width 1, B.solid, B.color black] [E.text h]
+                            , width = fill
+                            , view = \arg -> column [B.width 1, B.solid, B.color black] [viewMaybeConc h arg]
+                            }
+      (headerr :: headerss) -> case List.isEmpty (String.toList vars) of
+                                True -> {header = column [B.width 1, B.solid, B.color black] [(E.text headerr)]
+                                        , width = fill
+                                        , view  = \arg -> column [B.width 1, B.solid, B.color black] [viewProp headerr arg]
+                                        } :: (createColumns (tailify vars) (tailifyList headerS) )
+                                False -> {header = column [B.width 1, B.solid, B.color black] [(E.text headerr)]
+                                         , width = fill
+                                         , view  = \arg -> column [B.width 1, B.solid, B.color black] [viewVar headerr arg]
+                                         } :: (createColumns (tailify vars) (tailifyList headerS))
 
 toChar : String -> Char
 toChar s =
@@ -337,10 +357,13 @@ viewVar : String -> Argument -> Element Msg
 viewVar var arg = 
    let indexOfVar  = Maybe.withDefault (-1) (getIndex (toChar var) (Tuple.first arg.assignment))
        boolean     = Maybe.withDefault True (index indexOfVar (Tuple.second arg.assignment))
-   in  E.text (fromBool boolean)
+   in  (E.text (fromBool boolean))
 
-viewConc : Argument -> Element Msg
-viewConc arg = E.text (fromBool (Tuple.second arg.conclusion))
+viewMaybeConc : String -> Argument -> Element Msg
+viewMaybeConc maybeConc arg = 
+     case arg.conclusion of
+      Nothing -> viewProp maybeConc arg
+      (Just t) -> E.text <| fromBool <| Tuple.second t
 
 viewProp : String -> Argument -> Element Msg
 viewProp prop arg = 
@@ -356,7 +379,7 @@ viewProp prop arg =
          myPropBoolean : Bool
          myPropBoolean = Tuple.second myPropDouble
      in 
-      E.text (fromBool myPropBoolean)
+      (E.text (fromBool myPropBoolean))
 --- ENDING OF CREATING TRUTH TABLE
 -----------------------------------------                            
 --- JSON DECODER FOR HASKELL BACKEND
@@ -385,4 +408,3 @@ haskellResponseDecoder =
 -- SUBSCRIPTIONS
 subscriptions : Model -> Sub Msg
 subscriptions model = Sub.none
---
