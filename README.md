@@ -21,6 +21,8 @@ secondString = "P <-> Q
 and it will generate a truth table for them.
 whether its an argument ,
 or just a set of proposotions.
+
+boolean baboon is a dumb name I have called myself. 
 the % symbol is a placeholder for the therefore symbol. 
 <img src="blob:chrome-untrusted://media-app/6eebb800-1603-4eaf-81b0-c2530f7d5b6f" alt="Screenshot 2024-08-08 10.56.22 AM.png"/>![image](https://github.com/user-attachments/assets/1613e4fa-c2bc-40e6-9bc6-9df39eb9c7b5)
 some Strings will result in a parsing error. like the second string above. 
