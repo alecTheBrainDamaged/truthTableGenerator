@@ -8,6 +8,7 @@ data Proposition
    | Not Proposition
    | And Proposition Proposition
    | Or Proposition Proposition
+   | Xor Proposition Proposition
    | If    Proposition Proposition
    | Iff   Proposition Proposition
    deriving (Eq, Ord)
@@ -22,6 +23,7 @@ instance Show Proposition where
    show (Not p) = "\x00AC" ++ (show p)
    show (And p p') = (bracket  $ show p ) ++ " " ++ "\x2227" ++ " " ++ (bracket $ show p')
    show (Or p p')  = (bracket $ show p) ++ " " ++ "\x2228" ++ " " ++ (bracket $ show p')
+   show (Xor p p') = (bracket $ show p) ++ " " ++ "\x22BD" ++ " " ++ (bracket $ show p')
    show (If p p')  = (bracket $ show p) ++ " " ++ "\x2192" ++ " " ++ (bracket $ show p')
    show (Iff p p')  = (bracket $ show p) ++ " " ++ "\x2194" ++ " " ++ (bracket $ show p')
 
@@ -43,3 +45,4 @@ data TruthTable = TruthTable
                 , validity :: Maybe Validity
                 }
                 deriving (Eq, Show)
+
