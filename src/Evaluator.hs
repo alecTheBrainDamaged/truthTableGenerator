@@ -66,8 +66,10 @@ generateTruthTable e =
           getVars (Not p) = getVars p
           getVars (And prop1 prop2) = (getVars prop1) ++ (getVars prop2)
           getVars (Or prop1 prop2) = (getVars prop1) ++ (getVars prop2)
+          getVars (Xor prop1 prop2) = (getVars prop1) ++ (getVars prop2)
           getVars (If prop1 prop2) = (getVars prop1) ++ (getVars prop2)
           getVars (Iff prop1 prop2) = (getVars prop1) ++ (getVars prop2)
+          
       getVarsInArg (Left ((premises , conclusion))) = nub $ foldr (\p acc -> (getVars p) ++ acc) (getVars conclusion) premises
         where
 
