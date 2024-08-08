@@ -38,7 +38,8 @@ operatorTable :: [[Operator Parser Proposition]]
 operatorTable =
   [ [prefix ["~" , "\x00AC" , "!"] Not ],
     [binaryLeft ["&&", "&", "\x2227", "\x00B7","\x0026"] And],
-    [binaryLeft ["V", "\x2228", "x002B","\x2225"] Or],
+    [binaryLeft ["\x2228", "x002B","\x2225"] Or],
+    [binaryLeft ["\x22BB", "\x2295"] Xor],
     [binaryRight ["->", "\x2192", "\x21D2","\x2283"] If],
     [binaryN     ["<->", "\x2194" , "\x21D4", "\x2261"] Iff]
   ]
