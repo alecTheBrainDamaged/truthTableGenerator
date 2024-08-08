@@ -13,3 +13,22 @@ in fact, I could even make it such that the back end has api,
 for others to build their Own front ends.
 
 , i need to add pictures of what it can do so far . 
+
+the back end will parse Strings like such 
+
+
+"
+P 
+P -> Q 
+
+"
+
+"
+P <-> Q
+% P -> Q
+"
+
+and it will generate a truth table for them.
+whether its an argument ,
+or just a set of proposotions.
+the % symbol is a placeholder for the therefore symbol. 
