@@ -44,7 +44,9 @@ generateTruthTable e =
 
                        onlyTruePremises = filter (\list -> all (\(_ , _ ,maybeb) -> maybeb == (Just True) ) list ) everyPremiseEval'
 
-                       validity = evalValidity onlyTruePremises c
+                       validity = case onlyTruePremises of
+                                   [] -> VacouslyValid
+                                   _  -> evalValidity onlyTruePremises c
 
                        truthTableData = TruthTable
                                       { eap = e
@@ -74,6 +76,7 @@ generateTruthTable e =
           getVars (Not p) = getVars p
           getVars (And prop1 prop2) = (getVars prop1) ++ (getVars prop2)
           getVars (Or prop1 prop2) = (getVars prop1) ++ (getVars prop2)
+          getVars (Xor prop1 prop2) = (getVars prop1) ++ (getVars prop2)
           getVars (If prop1 prop2) = (getVars prop1) ++ (getVars prop2)
           getVars (Iff prop1 prop2) = (getVars prop1) ++ (getVars prop2)
 
@@ -94,18 +97,10 @@ generateTruthTable e =
                    -> Validity
       evalValidity allTruePremises conclusion =
         case allTruePremises of
-                [] -> VacouslyValid
-                _  -> g allTruePremises (fromJust $ takeAssignment $ head allTruePremises) conclusion
-                       where g :: [[(Proposition, (String, [Bool]) , Maybe Bool)]]
-                               -> (String, [Bool])
-                               -> Conclusion
-                               -> Validity
-                             g l a c = case l of
-                                        [] -> Valid
-                                        _  -> case getEval c a of
-                                               Just True -> g (tail l) (fromJust $ takeAssignment $ head l) conclusion
-                                               _         -> Invalid
-
+                [] -> Valid
+                (l : ls) ->  case getEval conclusion (fromJust $ takeAssignment $ l) of
+                              (Just False) -> Invalid
+                              (Just True)  -> evalValidity ls conclusion
 takeAssignment :: [(a , (String,[Bool]), c)] -> Maybe (String, [Bool])
 takeAssignment [] = Nothing
 takeAssignment ((_ , assignment  , _ ) : _ ) = Just assignment
@@ -123,6 +118,13 @@ getEval (Or p1 p2) tuple = do
              b <- (getEval p1 tuple)
              b' <- (getEval p2 tuple)
              return $ b || b'
+getEval (Xor p1 p2) tuple = do
+             b <- (getEval p1 tuple)
+             b' <- (getEval p2 tuple)
+             return $ b `xor` b'
+             where xor True True = False
+                   xor False False = False
+                   xor _     _     = True
 getEval (If p1 p2) tuple = do
              b <- (getEval p1 tuple)
              b' <- (getEval p2 tuple)
